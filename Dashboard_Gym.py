@@ -7,12 +7,12 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import os
 
-# --- CONFIGURACIÓN DE FIREBASE ---
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CREDENCIALES_LOCALES = os.path.join(BASE_DIR, "credenciales.json")
-DEFAULT_PATH = r"C:\Users\Usuario\OneDrive - Estudiantes ITCR\TEC\Jarvis\credenciales.json"
-RUTA_CREDENCIALES = os.environ.get('RUTA_CREDENCIALES', CREDENCIALES_LOCALES if os.path.exists(CREDENCIALES_LOCALES) else DEFAULT_PATH)
+import json
 
+if not firebase_admin._apps:
+    cred_dict = json.loads(st.secrets["firebase"]["credenciales"])
+    cred = credentials.Certificate(cred_dict)
+    firebase_admin.initialize_app(cred)
 if not firebase_admin._apps:
     cred = credentials.Certificate(RUTA_CREDENCIALES)
     firebase_admin.initialize_app(cred)
