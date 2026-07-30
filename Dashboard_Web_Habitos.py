@@ -177,9 +177,9 @@ def cargar_datos():
                 "Gym": to_emoji(hab.get('gym', '')),
                 "A tiempo": to_emoji(hab.get('desperte_a_tiempo', '')),
                 "Sueño": to_emoji(hab.get('dormi_8_horas', '')),
-                "Correr (km/min)": str(hab.get('correr', '0')),
-                "Estudio (h)": float(hab.get('horas_estudio', 0)),
-                "Redes (h)": float(hab.get('horas_redes', 0))
+                "Correr (km/min)": str(hab.get('correr') or '0'),
+                "Estudio (h)": float(hab.get('horas_estudio') or 0),
+                "Redes (h)": float(hab.get('horas_redes') or 0)
             })
     df_habitos = pd.DataFrame(filas_habitos) if filas_habitos else pd.DataFrame(columns=["Fecha"] + list(MAPEO_HABITOS.keys()))
     
