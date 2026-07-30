@@ -118,10 +118,16 @@ st.markdown("""
 def get_firebase_db():
     if not firebase_admin._apps:
         # Intentar leer desde Streamlit Secrets primero
-        if "firebase" in st.secrets:
-            cred_dict = dict(st.secrets["firebase"])
-            cred = credentials.Certificate(cred_dict)
-        else:
+          try:
+            if "FIREBASE_JSON" in st.secrets:
+                cred_dict = json.loads(st.secrets["FIREBASE_JSON"])
+                cred = credentials.Certificate(cred_dict)
+            elif "firebase" in st.secrets:
+                cred_dict = dict(st.secrets["firebase"])
+                cred = credentials.Certificate(cred_dict)
+            else:
+                raise ValueError("No firebase secrets found")
+        except Exception:
             # Fallback a local
             BASE_DIR = os.path.dirname(os.path.abspath(__file__))
             ruta = os.path.join(BASE_DIR, "credenciales.json")
