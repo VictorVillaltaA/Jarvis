@@ -118,7 +118,7 @@ st.markdown("""
 def get_firebase_db():
     if not firebase_admin._apps:
         # Intentar leer desde Streamlit Secrets primero
-          try:
+        try:
             if "FIREBASE_JSON" in st.secrets:
                 cred_dict = json.loads(st.secrets["FIREBASE_JSON"])
                 cred = credentials.Certificate(cred_dict)
