@@ -175,26 +175,36 @@ st.markdown("""
 @st.cache_data(ttl=30)
 def cargar_datos_gym():
     """Lee rutinas nuevas y conserva visibles los registros históricos de gimnasio."""
-    docs = list(db.collection('rutina_gym').stream()) + list(db.collection('gimnasio').stream())
+    docs_rutina = list(db.collection('rutina_gym').stream())
+    docs_gym = list(db.collection('gimnasio').stream())
+    
     filas = []
-    for doc in docs:
-        data = doc.to_dict()
-        fecha = data.get('fecha', 'Sin fecha')
-        grupo = data.get('grupo_muscular', 'N/A')
-        for r in data.get('registros', []):
-            filas.append({
-                'Fecha': fecha,
-                'Grupo Muscular': grupo,
-                'Persona': str(r.get('persona', 'N/A')).upper(),
-                'Ejercicio': r.get('ejercicio', 'N/A'),
-                'Unidad': r.get('unidad', 'LBS'),
-                'Serie': r.get('serie', 0),
-                'Peso': r.get('peso', 0),
-                'Reps': r.get('reps', 0),
-                'Nota': r.get('nota') or ''
-            })
+    # Diferenciamos de qué colección viene cada doc
+    for col_name, docs in [('rutina_gym', docs_rutina), ('gimnasio', docs_gym)]:
+        for doc in docs:
+            data = doc.to_dict()
+            doc_id = doc.id
+            fecha = data.get('fecha', 'Sin fecha')
+            grupo = data.get('grupo_muscular', 'N/A')
+            
+            for r in data.get('registros', []):
+                filas.append({
+                    'doc_id': doc_id,
+                    'coleccion': col_name,
+                    'Fecha': fecha,
+                    'Grupo Muscular': grupo,
+                    'Persona': str(r.get('persona', 'N/A')).upper(),
+                    'Ejercicio': r.get('ejercicio', 'N/A'),
+                    'Unidad': r.get('unidad', 'LBS'),
+                    'Serie': r.get('serie', 0),
+                    'Peso': r.get('peso', 0),
+                    'Reps': r.get('reps', 0),
+                    'Nota': r.get('nota') or ''
+                })
+                
     if not filas:
-        return pd.DataFrame(columns=['Fecha','Grupo Muscular','Persona','Ejercicio','Unidad','Serie','Peso','Reps','Nota'])
+        return pd.DataFrame(columns=['doc_id', 'coleccion', 'Fecha','Grupo Muscular','Persona','Ejercicio','Unidad','Serie','Peso','Reps','Nota'])
+        
     df = pd.DataFrame(filas)
     df['Peso'] = pd.to_numeric(df['Peso'], errors='coerce').fillna(0)
     df['Reps'] = pd.to_numeric(df['Reps'], errors='coerce').fillna(0).astype(int)
@@ -346,12 +356,47 @@ with tab_progreso:
 
 with tab_historial:
     st.markdown('<div class="section-header">REGISTRO COMPLETO</div>', unsafe_allow_html=True)
-    st.dataframe(
-        df[['Fecha', 'Grupo Muscular', 'Persona', 'Ejercicio', 'Serie', 'Peso', 'Reps', 'Unidad']],
+    
+    # Se usa el df completo para no perder los doc_id ni la colección
+    edited_df = st.data_editor(
+        df,
+        column_config={
+            "doc_id": None,     # Oculta la columna
+            "coleccion": None   # Oculta la columna
+        },
         use_container_width=True,
         hide_index=True,
-        height=500
+        height=500,
+        num_rows="dynamic"
     )
+    
+    if st.button("Guardar cambios en Firebase"):
+        # Agrupar las filas modificadas por documento y colección
+        docs_modificados = edited_df.groupby(['coleccion', 'doc_id'])
+        
+        for (coleccion, doc_id), grupo_df in docs_modificados:
+            nuevos_registros = []
+            
+            # Reconstruir el arreglo 'registros' para este documento
+            for _, row in grupo_df.iterrows():
+                nuevos_registros.append({
+                    'persona': row['Persona'],
+                    'ejercicio': row['Ejercicio'],
+                    'unidad': row['Unidad'],
+                    'serie': int(row['Serie']),
+                    'peso': float(row['Peso']),
+                    'reps': int(row['Reps']),
+                    'nota': row['Nota'] if pd.notna(row['Nota']) else ""
+                })
+            
+            # Actualizar únicamente el campo registros en Firebase
+            db.collection(coleccion).document(doc_id).update({
+                'registros': nuevos_registros
+            })
+            
+        st.success("¡Base de datos actualizada!")
+        st.cache_data.clear() # Limpia la caché
+        st.rerun() # Refresca la página para cargar los datos desde Firebase
 
 with tab_notas:
     st.markdown('<div class="section-header">NOTAS DE ENTRENAMIENTO</div>', unsafe_allow_html=True)
