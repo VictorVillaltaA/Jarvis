@@ -283,7 +283,11 @@ tab_progreso, tab_historial, tab_notas = st.tabs(["📈 Progreso", "📋 Histori
 with tab_progreso:
     st.markdown('<div class="section-header">EVOLUCIÓN DE PESO MÁXIMO POR EJERCICIO</div>', unsafe_allow_html=True)
 
-    peso_max = df.groupby(['Fecha', 'Ejercicio', 'Persona'])['Peso'].max().reset_index()
+    df_progreso = df.copy()
+    # 2. Convertir la fecha para ignorar la hora
+    df_progreso['Fecha'] = pd.to_datetime(df_progreso['Fecha'], errors='coerce').dt.strftime('%Y-%m-%d')
+
+    peso_max = df_progreso.groupby(['Fecha', 'Ejercicio', 'Persona'])['Peso'].max().reset_index()
 
     if len(personas_sel) <= 1:
         color_col = 'Ejercicio'
@@ -304,7 +308,7 @@ with tab_progreso:
         paper_bgcolor='#050014',
         font=dict(family='Inter', color='#E0E0E0'),
         legend=dict(bgcolor='#120024', bordercolor='#FF00FF', borderwidth=1),
-        xaxis=dict(gridcolor='#1a0040'),
+        xaxis=dict(gridcolor='#1a0040', type='category'), # type='category' fuerza que se vea por fecha y no por hora
         yaxis=dict(gridcolor='#1a0040'),
         margin=dict(l=20, r=20, t=30, b=20)
     )
@@ -314,15 +318,19 @@ with tab_progreso:
     # Volumen por sesión
     st.markdown('<div class="section-header">VOLUMEN POR SESIÓN (Peso × Reps)</div>', unsafe_allow_html=True)
 
-    df_vol = df.copy()
-    df_vol['Volumen'] = df_vol['Peso'] * df_vol['Reps']
+    df_vol = df_progreso.copy()
+    # 1. Convertir LBS a KG (factor de 0.453592) únicamente para el cálculo de volumen
+    df_vol['Peso_KG'] = df_vol.apply(
+        lambda x: x['Peso'] * 0.453592 if str(x['Unidad']).upper() == 'LBS' else x['Peso'], axis=1
+    )
+    df_vol['Volumen'] = df_vol['Peso_KG'] * df_vol['Reps']
     vol_sesion = df_vol.groupby(['Fecha', 'Persona'])['Volumen'].sum().reset_index()
 
     fig2 = px.bar(
         vol_sesion, x='Fecha', y='Volumen', color='Persona',
         barmode='group',
         template='plotly_dark',
-        labels={'Volumen': 'Volumen Total', 'Fecha': ''},
+        labels={'Volumen': 'Volumen Total (KG)', 'Fecha': ''},
         color_discrete_sequence=['#00FFFF', '#FF00FF', '#9900FF', '#FF5500', '#00FF88']
     )
     fig2.update_layout(
@@ -330,7 +338,7 @@ with tab_progreso:
         paper_bgcolor='#050014',
         font=dict(family='Inter', color='#E0E0E0'),
         legend=dict(bgcolor='#120024', bordercolor='#FF00FF', borderwidth=1),
-        xaxis=dict(gridcolor='#1a0040'),
+        xaxis=dict(gridcolor='#1a0040', type='category'),
         yaxis=dict(gridcolor='#1a0040'),
         margin=dict(l=20, r=20, t=30, b=20)
     )
