@@ -243,10 +243,9 @@ def guardar_habitos():
                     db.collection('habitos').document(fecha).set({"habitos": {fb_key: real_val}}, merge=True)
         st.cache_data.clear()
 
-def guardar_tareas():
-    # En lugar de detectar fila por fila, tomamos el df final editado,
-    # lo agrupamos por fecha y reescribimos el array de tareas en Firestore.
-    df = st.session_state["editor_tareas"]
+def guardar_tareas(df_editado):
+    # Usamos el dataframe ya editado devuelto por st.data_editor
+    df = df_editado
     # Limpiar tareas que el usuario borró (eliminadas en UI usando data_editor)
     agrupado = df.groupby("Doc_Fecha")
     
@@ -274,8 +273,8 @@ def guardar_tareas():
     st.cache_data.clear()
     st.rerun()
 
-def guardar_notas():
-    df = st.session_state["editor_notas"]
+def guardar_notas(df_editado):
+    df = df_editado
     
     # 1. Notas Diarias (Arrays en la colección 'habitos')
     df_diarias = df[df["Tipo"] == "Diaria"]
@@ -412,7 +411,7 @@ with tab2:
                 color, bg = "#10b981", "rgba(16, 185, 129, 0.2)" # Verde
                 
         html_cards += f"""
-        <div style='background: {bg}; border: 1px solid {color}; border-radius: 12px; padding: 15px; min-width: 220px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
+        <div style='background: {bg}; border: 1px solid {color}; border-radius: 12px; padding: 15px; min-width: 220px; flex-shrink: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
             <h4 style='color: {color}; margin: 0 0 5px 0; font-family: "Inter"; font-size: 14px; font-weight: bold;'>{t["desc"]}</h4>
             <p style='color: #4c1d95; margin: 0; font-size: 12px;'>📅 {t["limite_str"]}</p>
         </div>
@@ -425,16 +424,25 @@ with tab2:
     st.markdown('<div class="section-title">Protocolos Pendientes (Edición)</div>', unsafe_allow_html=True)
     st.markdown("Edita las celdas directamente. Selecciona filas y bórralas presionando `Suprimir` o la papelera. Haz clic en 'Guardar Cambios' al terminar.")
     
-    st.data_editor(
+    df_tareas_editado = st.data_editor(
         st.session_state["df_tareas_state"],
         key="editor_tareas",
         hide_index=True,
         num_rows="dynamic",
         use_container_width=True,
-        disabled=["Doc_Fecha"]
+        disabled=["Doc_Fecha"],
+        column_config={
+            "Doc_Fecha": None, # Ocultar columna visualmente
+            "Prioridad": st.column_config.SelectboxColumn(
+                "Prioridad",
+                help="Prioridad de la tarea",
+                options=["Alta", "Media", "Baja", "-"],
+                required=True
+            )
+        }
     )
     if st.button("💾 Guardar Cambios de Tareas"):
-        guardar_tareas()
+        guardar_tareas(df_tareas_editado)
     st.markdown('</div>', unsafe_allow_html=True)
 
 
@@ -444,7 +452,7 @@ with tab3:
     st.markdown('<div class="section-title">Base de Datos Textual</div>', unsafe_allow_html=True)
     st.markdown("Edita los títulos y contenidos directamente. Puedes añadir o borrar filas. Haz clic en 'Guardar Cambios' al terminar.")
     
-    st.data_editor(
+    df_notas_editado = st.data_editor(
         st.session_state["df_notas_state"],
         key="editor_notas",
         hide_index=True,
@@ -452,9 +460,11 @@ with tab3:
         use_container_width=True,
         disabled=["Tipo", "Referencia"],
         column_config={
+            "Tipo": None,
+            "Referencia": None,
             "Contenido": st.column_config.TextColumn("Contenido", width="large")
         }
     )
     if st.button("💾 Guardar Cambios de Notas"):
-        guardar_notas()
+        guardar_notas(df_notas_editado)
     st.markdown('</div>', unsafe_allow_html=True)

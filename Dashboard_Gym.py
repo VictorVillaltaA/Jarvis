@@ -8,6 +8,17 @@ from firebase_admin import credentials, firestore
 import os
 
 import json
+import unicodedata
+
+def norm_text(text):
+    if not text: return 'N/A'
+    s = ''.join(c for c in unicodedata.normalize('NFD', str(text)) if unicodedata.category(c) != 'Mn')
+    return ' '.join(s.split()).title()
+
+def norm_persona(text):
+    if not text: return 'N/A'
+    s = ''.join(c for c in unicodedata.normalize('NFD', str(text)) if unicodedata.category(c) != 'Mn')
+    return ' '.join(s.split()).upper()
 
 if not firebase_admin._apps:
     cred_dict = json.loads(st.secrets["firebase"]["credenciales"])
@@ -185,7 +196,7 @@ def cargar_datos_gym():
             data = doc.to_dict()
             doc_id = doc.id
             fecha = data.get('fecha', 'Sin fecha')
-            grupo = data.get('grupo_muscular', 'N/A')
+            grupo = norm_text(data.get('grupo_muscular', 'N/A'))
             
             for r in data.get('registros', []):
                 filas.append({
@@ -193,8 +204,8 @@ def cargar_datos_gym():
                     'coleccion': col_name,
                     'Fecha': fecha,
                     'Grupo Muscular': grupo,
-                    'Persona': str(r.get('persona', 'N/A')).upper(),
-                    'Ejercicio': r.get('ejercicio', 'N/A'),
+                    'Persona': norm_persona(r.get('persona', 'N/A')),
+                    'Ejercicio': norm_text(r.get('ejercicio', 'N/A')),
                     'Unidad': r.get('unidad', 'LBS'),
                     'Serie': r.get('serie', 0),
                     'Peso': r.get('peso', 0),
