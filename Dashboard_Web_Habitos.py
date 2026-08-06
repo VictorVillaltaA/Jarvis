@@ -410,12 +410,10 @@ with tab2:
             else:
                 color, bg = "#10b981", "rgba(16, 185, 129, 0.2)" # Verde
                 
-        html_cards += f"""
-        <div style='background: {bg}; border: 1px solid {color}; border-radius: 12px; padding: 15px; min-width: 220px; flex-shrink: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
-            <h4 style='color: {color}; margin: 0 0 5px 0; font-family: "Inter"; font-size: 14px; font-weight: bold;'>{t["desc"]}</h4>
-            <p style='color: #4c1d95; margin: 0; font-size: 12px;'>📅 {t["limite_str"]}</p>
-        </div>
-        """
+        html_cards += f"<div style='background: {bg}; border: 1px solid {color}; border-radius: 12px; padding: 15px; min-width: 220px; flex-shrink: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>"
+        html_cards += f"<h4 style='color: {color}; margin: 0 0 5px 0; font-family: \"Inter\", sans-serif; font-size: 14px; font-weight: bold;'>{t['desc']}</h4>"
+        html_cards += f"<p style='color: #4c1d95; margin: 0; font-size: 12px;'>📅 {t['limite_str']}</p>"
+        html_cards += "</div>"
     html_cards += "</div>"
     st.markdown(html_cards, unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
@@ -435,8 +433,8 @@ with tab2:
             "Doc_Fecha": None, # Ocultar columna visualmente
             "Prioridad": st.column_config.SelectboxColumn(
                 "Prioridad",
-                help="Prioridad de la tarea",
-                options=["Alta", "Media", "Baja", "-"],
+                help="Prioridad de la tarea (1 = mayor, 5 = menor)",
+                options=["1", "2", "3", "4", "5", "-"],
                 required=True
             )
         }
